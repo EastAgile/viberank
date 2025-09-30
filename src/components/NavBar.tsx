@@ -2,18 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Upload, Github, Menu, X, Shield } from "lucide-react";
+import { Trophy, Github, Menu, X, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-interface NavBarProps {
-  onUploadClick: () => void;
-}
+interface NavBarProps {}
 
 const ADMIN_USERS = ["nikshepsvn"];
 
-export default function NavBar({ onUploadClick }: NavBarProps) {
+export default function NavBar({}: NavBarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
@@ -91,33 +89,18 @@ export default function NavBar({ onUploadClick }: NavBarProps) {
               </div>
             )}
 
-            {/* Right side actions */}
+            {/* GitHub link */}
             <div className="flex items-center gap-2 px-2">
-              {/* Submit Button */}
-              <motion.button
+              <motion.a
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={onUploadClick}
-                className="px-4 py-2 rounded-full bg-accent text-white hover:bg-accent/90 transition-colors text-sm flex items-center gap-2"
+                href="https://github.com/EastAgile/viberank"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full hover:bg-accent/10 transition-colors"
               >
-                <Upload className="w-4 h-4" />
-                Submit
-              </motion.button>
-
-
-              {/* GitHub link */}
-              <div className="flex items-center gap-1 border-l border-border/50 pl-2">
-                <motion.a
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  href="https://github.com/EastAgile/viberank"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-full hover:bg-accent/10 transition-colors"
-                >
-                  <Github className="w-4 h-4" />
-                </motion.a>
-              </div>
+                <Github className="w-4 h-4" />
+              </motion.a>
             </div>
           </div>
         </motion.div>
@@ -132,18 +115,6 @@ export default function NavBar({ onUploadClick }: NavBarProps) {
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* Submit Button */}
-            <button
-              onClick={() => {
-                onUploadClick();
-                setMobileMenuOpen(false);
-              }}
-              className="px-3 py-1.5 rounded-full bg-accent text-white text-sm flex items-center gap-1.5"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Submit
-            </button>
-
             {/* Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

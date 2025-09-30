@@ -547,12 +547,6 @@ export const getLeaderboardByDateRange = query({
   },
 });
 
-export const getSubmission = query({
-  args: { id: v.id("submissions") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
-  },
-});
 
 export const getProfile = query({
   args: { 
