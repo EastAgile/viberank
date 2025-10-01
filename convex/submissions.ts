@@ -1,8 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query, internal } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
 import { rateLimiter } from "./rateLimiter";
-import { ConvexError } from "convex/values";
 
 export const submit = mutation({
   args: {
@@ -60,7 +58,7 @@ export const submit = mutation({
         throw new Error(`Rate limit exceeded. Please wait ${waitSeconds} seconds before submitting again.`);
       }
       throw error;
-    }
+    } 
     
     // Log submission attempt for debugging
     console.log("Submission attempt:", {
@@ -307,6 +305,8 @@ export const submit = mutation({
           source: source,
           flaggedForReview: flaggedForReview || existingSubmission.flaggedForReview,
           flagReasons: flaggedForReview ? suspiciousReasons : existingSubmission.flagReasons,
+          // Track how many times this submission has been updated
+          submissionCount: (existingSubmission.submissionCount || 1) + 1,
         });
         submissionId = existingSubmission._id;
       } catch (updateError) {
@@ -349,6 +349,7 @@ export const submit = mutation({
           source: source,
           flaggedForReview: flaggedForReview,
           flagReasons: flaggedForReview ? suspiciousReasons : undefined,
+          submissionCount: 1, // First submission
         });
       } catch (insertError) {
         console.error("Failed to insert submission:", {
@@ -375,11 +376,11 @@ export const submit = mutation({
         githubName,
         avatar: githubAvatar,
       };
-      
+
       if (!existingSubmission) {
         updates.totalSubmissions = existingProfile.totalSubmissions + 1;
       }
-      
+
       await ctx.db.patch(existingProfile._id, updates);
     } else {
       await ctx.db.insert("profiles", {
@@ -546,12 +547,6 @@ export const getLeaderboardByDateRange = query({
   },
 });
 
-export const getSubmission = query({
-  args: { id: v.id("submissions") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
-  },
-});
 
 export const getProfile = query({
   args: { 
