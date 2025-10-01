@@ -369,17 +369,14 @@ export const submit = mutation({
       .first();
     
     if (existingProfile) {
-      // Only increment totalSubmissions if this is a new submission
+      // Always increment totalSubmissions for every submit action
       const updates: any = {
         bestSubmission: submissionId,
         githubUsername,
         githubName,
         avatar: githubAvatar,
+        totalSubmissions: existingProfile.totalSubmissions + 1, // Always increment
       };
-
-      if (!existingSubmission) {
-        updates.totalSubmissions = existingProfile.totalSubmissions + 1;
-      }
 
       await ctx.db.patch(existingProfile._id, updates);
     } else {
@@ -445,53 +442,44 @@ export const getLeaderboard = query({
 
 // Removed getLeaderboardLegacy - not needed
 
-// Separate query specifically for date-filtered leaderboard
-// This is expensive and should ideally use pre-aggregated data
+// Date-filtered leaderboard with proper offset pagination
+// Fetches all data for accurate sorting (acceptable for small datasets)
 export const getLeaderboardByDateRange = query({
   args: {
     dateFrom: v.string(),
     dateTo: v.string(),
     sortBy: v.optional(v.union(v.literal("cost"), v.literal("tokens"))),
-    limit: v.optional(v.number()),
-    cursor: v.optional(v.id("submissions")),
+    page: v.optional(v.number()),       // Page number (0-based) instead of cursor
+    pageSize: v.optional(v.number()),   // Items per page instead of limit
     includeFlagged: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const limit = Math.min(args.limit || 50, 100);
-    const includeFlagged = args.includeFlagged || false;
     const sortBy = args.sortBy || "cost";
-    
-    // NOTE: Date range filtering requires computing totals from dailyBreakdown
-    // This is inherently expensive. Consider:
-    // 1. Pre-computing weekly/monthly aggregates
-    // 2. Storing denormalized date-range totals
-    // 3. Using a separate analytics table
-    
-    let query = ctx.db.query("submissions");
-    
-    // Apply cursor if provided
-    if (args.cursor) {
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor));
-    }
-    
-    // Fetch a batch to process
-    const batchSize = 100;
-    const batch = await query.take(batchSize);
-    
-    // Process and filter submissions
+    const page = args.page || 0;
+    const pageSize = Math.min(args.pageSize || 25, 50); // Max 50 per page
+    const offset = page * pageSize;
+    const includeFlagged = args.includeFlagged || false;
+
+    // Fetch ALL submissions at once (acceptable for small company dataset)
+    const allSubmissions = await ctx.db
+      .query("submissions")
+      .collect(); // Fetch everything
+
+    // Process ALL submissions to calculate date-filtered totals
     const processedItems = [];
-    
-    for (const submission of batch) {
+
+    for (const submission of allSubmissions) {
       // Skip flagged if not included
       if (!includeFlagged && submission.flaggedForReview) continue;
-      
+
       // Filter daily breakdown by date range
       const filteredDays = submission.dailyBreakdown.filter(day => {
         return day.date >= args.dateFrom && day.date <= args.dateTo;
       });
-      
+
+      // Skip if no data in date range
       if (filteredDays.length === 0) continue;
-      
+
       // Calculate totals for the filtered date range
       const filteredTotals = filteredDays.reduce(
         (acc, day) => ({
@@ -511,38 +499,38 @@ export const getLeaderboardByDateRange = query({
           cacheReadTokens: 0,
         }
       );
-      
+
       processedItems.push({
         ...submission,
-        ...filteredTotals,
+        ...filteredTotals, // Override with filtered totals
         originalTotals: {
           totalCost: submission.totalCost,
           totalTokens: submission.totalTokens,
         },
         isFiltered: true,
+        daysInRange: filteredDays.length,
       });
     }
-    
-    // Sort the processed items
+
+    // Sort ALL processed items properly
     processedItems.sort((a, b) => {
-      return sortBy === "cost" 
+      return sortBy === "cost"
         ? b.totalCost - a.totalCost
         : b.totalTokens - a.totalTokens;
     });
-    
-    // Return paginated results
-    const items = processedItems.slice(0, limit);
-    const hasMore = batch.length === batchSize;
-    const nextCursor = hasMore && batch.length > 0 
-      ? batch[batch.length - 1]._id 
-      : undefined;
-    
+
+    // Apply offset-based pagination (same as getLeaderboard)
+    const items = processedItems.slice(offset, offset + pageSize);
+    const hasMore = processedItems.length > offset + pageSize;
+    const totalItems = processedItems.length;
+
     return {
       items,
-      nextCursor,
+      page,
+      pageSize,
       hasMore,
-      // Signal that client may need to fetch more if we don't have enough results
-      needsMoreData: processedItems.length < limit && hasMore,
+      totalPages: Math.ceil(totalItems / pageSize),
+      totalItems, // Helpful for showing "X results found"
     };
   },
 });
