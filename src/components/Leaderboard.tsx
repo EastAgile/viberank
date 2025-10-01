@@ -24,10 +24,12 @@ export default function Leaderboard() {
   const ITEMS_PER_PAGE = 25;
 
   // Fetch only the current page from backend - proper pagination!
-  const result = useQuery(api.submissions.getLeaderboard, {
+  const result = useQuery(api.submissions.getLeaderboard, { 
     sortBy,
     page,
     pageSize: ITEMS_PER_PAGE,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
   });
 
   // Use data directly from backend - no client-side slicing needed
@@ -231,13 +233,12 @@ export default function Leaderboard() {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Rank</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Developer</th>
                       <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Spent</th>
-                      <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Input Tokens</th>
-                      <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Output Tokens</th>
+                      <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Tokens</th>
                       <th className="w-16"></th>
                     </tr>
                   </thead>
                 <tbody>
-                  {paginatedSubmissions.map((submission: any, index: number) => {
+                  {paginatedSubmissions.map((submission, index) => {
                     const actualRank = page * ITEMS_PER_PAGE + index + 1;
                     const isCurrentUser = session?.user?.username === submission.githubUsername || 
                                          session?.user?.email === submission.username;
@@ -291,11 +292,6 @@ export default function Leaderboard() {
                                 >
                                   {submission.githubUsername || submission.username}
                                 </Link>
-                                {submission.submissionCount && submission.submissionCount > 1 && (
-                                  <span className="px-1.5 py-0.5 text-[10px] bg-accent/20 text-accent rounded-full font-medium">
-                                    {submission.submissionCount}x
-                                  </span>
-                                )}
                                 {submission.verified && (
                                   <div className="group/badge relative inline-flex">
                                     <BadgeCheck className="w-4 h-4 text-blue-500" />
@@ -325,21 +321,11 @@ export default function Leaderboard() {
                         </td>
                         <td className="py-5 px-6 text-right">
                           <div>
-                            <p className="font-mono font-semibold text-foreground">
-                              {formatNumber(submission.inputTokens)}
+                            <p className="font-mono text-sm font-medium">
+                              {formatNumber(submission.totalTokens)}
                             </p>
                             <p className="text-xs text-muted mt-0.5">
-                              Prompts
-                            </p>
-                          </div>
-                        </td>
-                        <td className="py-5 px-6 text-right">
-                          <div>
-                            <p className="font-mono font-semibold text-foreground">
-                              {formatNumber(submission.outputTokens)}
-                            </p>
-                            <p className="text-xs text-muted mt-0.5">
-                              Responses
+                              {submission.dailyBreakdown.length} days
                             </p>
                           </div>
                         </td>
@@ -374,7 +360,7 @@ export default function Leaderboard() {
 
             {/* Mobile View */}
             <div className="sm:hidden space-y-3">
-              {paginatedSubmissions.map((submission: any, index: number) => {
+              {paginatedSubmissions.map((submission, index) => {
                 const actualRank = page * ITEMS_PER_PAGE + index + 1;
                 const isCurrentUser = session?.user?.username === submission.githubUsername || 
                                      session?.user?.email === submission.username;
@@ -420,11 +406,6 @@ export default function Leaderboard() {
                             className="group inline-flex items-center gap-1 font-medium hover:text-accent transition-colors text-sm truncate"
                           >
                             <span className="truncate">{submission.githubUsername || submission.username}</span>
-                            {submission.submissionCount && submission.submissionCount > 1 && (
-                              <span className="px-1.5 py-0.5 text-[10px] bg-accent/20 text-accent rounded-full font-medium flex-shrink-0">
-                                {submission.submissionCount}x
-                              </span>
-                            )}
                             {submission.verified && (
                               <div className="group/badge relative inline-flex flex-shrink-0">
                                 <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
@@ -454,32 +435,23 @@ export default function Leaderboard() {
                     </div>
                     
                     <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <p className="text-xs text-muted mb-0.5">Cost</p>
+                          <p className="text-xs text-muted mb-0.5">Total Cost</p>
                           <p className="font-mono font-semibold text-sm">
                             ${formatCurrency(submission.totalCost)}
                           </p>
                           <p className="text-[10px] text-muted/70">
+                            ${(submission.totalCost / submission.dailyBreakdown.length).toFixed(0)}/day
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted mb-0.5">Tokens</p>
+                          <p className="font-mono text-sm">
+                            {formatNumber(submission.totalTokens)}
+                          </p>
+                          <p className="text-[10px] text-muted/70">
                             {submission.dailyBreakdown.length} days
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted mb-0.5">Input</p>
-                          <p className="font-mono font-semibold text-sm">
-                            {formatNumber(submission.inputTokens)}
-                          </p>
-                          <p className="text-[10px] text-muted/70">
-                            Prompts
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted mb-0.5">Output</p>
-                          <p className="font-mono font-semibold text-sm">
-                            {formatNumber(submission.outputTokens)}
-                          </p>
-                          <p className="text-[10px] text-muted/70">
-                            Responses
                           </p>
                         </div>
                       </div>
@@ -497,7 +469,7 @@ export default function Leaderboard() {
             </div>
 
             {/* Share Card Modal */}
-            {showShareCard && paginatedSubmissions && paginatedSubmissions.find((s: any) => s._id === showShareCard) && (
+            {showShareCard && paginatedSubmissions && paginatedSubmissions.find(s => s._id === showShareCard) && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -506,11 +478,11 @@ export default function Leaderboard() {
               >
                 <div onClick={(e) => e.stopPropagation()}>
                   <ShareCard
-                    rank={paginatedSubmissions.findIndex((s: any) => s._id === showShareCard) + 1 + (page * ITEMS_PER_PAGE)}
-                    username={paginatedSubmissions.find((s: any) => s._id === showShareCard)!.username}
-                    totalCost={paginatedSubmissions.find((s: any) => s._id === showShareCard)!.totalCost}
-                    totalTokens={paginatedSubmissions.find((s: any) => s._id === showShareCard)!.totalTokens}
-                    dateRange={paginatedSubmissions.find((s: any) => s._id === showShareCard)!.dateRange}
+                    rank={paginatedSubmissions.findIndex(s => s._id === showShareCard) + 1 + (page * ITEMS_PER_PAGE)}
+                    username={paginatedSubmissions.find(s => s._id === showShareCard)!.username}
+                    totalCost={paginatedSubmissions.find(s => s._id === showShareCard)!.totalCost}
+                    totalTokens={paginatedSubmissions.find(s => s._id === showShareCard)!.totalTokens}
+                    dateRange={paginatedSubmissions.find(s => s._id === showShareCard)!.dateRange}
                     onClose={() => setShowShareCard(null)}
                   />
                 </div>
@@ -533,7 +505,7 @@ export default function Leaderboard() {
             <p className="text-sm text-muted mt-2">Be the first to submit your stats!</p>
           </div>
         )}
-
+        
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
