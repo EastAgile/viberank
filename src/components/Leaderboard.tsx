@@ -19,7 +19,7 @@ export default function Leaderboard() {
   const [dateTo, setDateTo] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
-  const [dateCursor, setDateCursor] = useState<string | undefined>(undefined);
+  const [dateCursor, setDateCursor] = useState<any>(undefined);
   const [dateFilteredResults, setDateFilteredResults] = useState<any[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const { data: session } = useSession();
