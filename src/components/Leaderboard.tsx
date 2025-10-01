@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, User, Share2, Filter, Clock, X, ChevronDown, ArrowUpRight, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react";
 import { useQuery } from "convex/react";
@@ -19,6 +19,9 @@ export default function Leaderboard() {
   const [dateTo, setDateTo] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
+  const [dateCursor, setDateCursor] = useState<string | undefined>(undefined);
+  const [dateFilteredResults, setDateFilteredResults] = useState<any[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
   const { data: session } = useSession();
 
   const ITEMS_PER_PAGE = 25;
@@ -44,14 +47,36 @@ export default function Leaderboard() {
       dateTo,
       sortBy,
       limit: ITEMS_PER_PAGE,
+      cursor: dateCursor,
     }
   );
 
+  // Handle date-filtered results accumulation
+  useEffect(() => {
+    if (dateFilteredResult?.items && hasDateFilter) {
+      if (dateCursor === undefined) {
+        // First load or filter change - replace results
+        setDateFilteredResults(dateFilteredResult.items);
+      } else {
+        // Loading more - append results
+        setDateFilteredResults(prev => [...prev, ...dateFilteredResult.items]);
+      }
+      setLoadingMore(false);
+    }
+  }, [dateFilteredResult?.items, hasDateFilter, dateCursor]);
+
+  // Reset cursor and results when date filter changes
+  useEffect(() => {
+    setDateCursor(undefined);
+    setDateFilteredResults([]);
+  }, [dateFrom, dateTo, sortBy]);
+
   // Use the appropriate result based on which query is active
   const result = hasDateFilter ? dateFilteredResult : regularResult;
-  const paginatedSubmissions = result?.items;
-  const totalPages = hasDateFilter ? 1 : (regularResult?.totalPages || 0); // Date filter doesn't support pagination
-  const hasMore = result?.hasMore || false;
+  const paginatedSubmissions = hasDateFilter ? dateFilteredResults : result?.items;
+  const totalPages = hasDateFilter ? 1 : (regularResult?.totalPages || 0);
+  const hasMore = dateFilteredResult?.hasMore || false;
+  const nextCursor = dateFilteredResult?.nextCursor;
 
   const getRankDisplay = (rank: number) => {
     if (rank === 1) return (
@@ -82,6 +107,14 @@ export default function Leaderboard() {
       </motion.div>
     );
     return <span className="text-lg font-semibold text-muted">{rank}</span>;
+  };
+
+  // Load more function for date-filtered results
+  const loadMore = () => {
+    if (nextCursor && !loadingMore) {
+      setLoadingMore(true);
+      setDateCursor(nextCursor);
+    }
   };
 
   // Quick filter functions
@@ -522,6 +555,35 @@ export default function Leaderboard() {
           </div>
         )}
         
+        {/* Load More button for date-filtered results */}
+        {hasDateFilter && (
+          <div className="flex flex-col items-center gap-3 mt-8">
+            {dateFilteredResults.length > 0 && (
+              <p className="text-sm text-muted">
+                Showing {dateFilteredResults.length} results
+              </p>
+            )}
+            {hasMore && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="px-6 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg transition-all flex items-center gap-2 font-medium"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>Load More Results</>
+                )}
+              </motion.button>
+            )}
+          </div>
+        )}
+
         {/* Pagination - only show for regular queries, not date-filtered */}
         {!hasDateFilter && totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
