@@ -19,9 +19,7 @@ export default function Leaderboard() {
   const [dateTo, setDateTo] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
-  const [dateCursor, setDateCursor] = useState<any>(undefined);
-  const [dateFilteredResults, setDateFilteredResults] = useState<any[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [dateFilterPage, setDateFilterPage] = useState(0); // Separate page state for date filtering
   const { data: session } = useSession();
 
   const ITEMS_PER_PAGE = 25;
@@ -39,44 +37,29 @@ export default function Leaderboard() {
     }
   );
 
-  // Date-filtered query (uses cursor-based pagination)
+  // Date-filtered query (now uses page-based pagination like regular query)
   const dateFilteredResult = useQuery(
     api.submissions.getLeaderboardByDateRange,
     !hasDateFilter ? "skip" : {
       dateFrom,
       dateTo,
       sortBy,
-      limit: ITEMS_PER_PAGE,
-      cursor: dateCursor,
+      page: dateFilterPage,
+      pageSize: ITEMS_PER_PAGE,
     }
   );
 
-  // Handle date-filtered results accumulation
+  // Reset page when date filter changes
   useEffect(() => {
-    if (dateFilteredResult?.items && hasDateFilter) {
-      if (dateCursor === undefined) {
-        // First load or filter change - replace results
-        setDateFilteredResults(dateFilteredResult.items);
-      } else {
-        // Loading more - append results
-        setDateFilteredResults(prev => [...prev, ...dateFilteredResult.items]);
-      }
-      setLoadingMore(false);
-    }
-  }, [dateFilteredResult?.items, hasDateFilter, dateCursor]);
-
-  // Reset cursor and results when date filter changes
-  useEffect(() => {
-    setDateCursor(undefined);
-    setDateFilteredResults([]);
+    setDateFilterPage(0);
   }, [dateFrom, dateTo, sortBy]);
 
   // Use the appropriate result based on which query is active
   const result = hasDateFilter ? dateFilteredResult : regularResult;
-  const paginatedSubmissions = hasDateFilter ? dateFilteredResults : result?.items;
-  const totalPages = hasDateFilter ? 1 : (regularResult?.totalPages || 0);
-  const hasMore = dateFilteredResult?.hasMore || false;
-  const nextCursor = dateFilteredResult?.nextCursor;
+  const paginatedSubmissions = result?.items;
+  const totalPages = result?.totalPages || 0;
+  const hasMore = result?.hasMore || false;
+  const currentPage = hasDateFilter ? dateFilterPage : page;
 
   const getRankDisplay = (rank: number) => {
     if (rank === 1) return (
@@ -107,14 +90,6 @@ export default function Leaderboard() {
       </motion.div>
     );
     return <span className="text-lg font-semibold text-muted">{rank}</span>;
-  };
-
-  // Load more function for date-filtered results
-  const loadMore = () => {
-    if (nextCursor && !loadingMore) {
-      setLoadingMore(true);
-      setDateCursor(nextCursor);
-    }
   };
 
   // Quick filter functions
@@ -555,49 +530,25 @@ export default function Leaderboard() {
           </div>
         )}
         
-        {/* Load More button for date-filtered results */}
-        {hasDateFilter && (
-          <div className="flex flex-col items-center gap-3 mt-8">
-            {dateFilteredResults.length > 0 && (
-              <p className="text-sm text-muted">
-                Showing {dateFilteredResults.length} results
-              </p>
-            )}
-            {hasMore && (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={loadMore}
-                disabled={loadingMore}
-                className="px-6 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg transition-all flex items-center gap-2 font-medium"
-              >
-                {loadingMore ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>Load More Results</>
-                )}
-              </motion.button>
-            )}
-          </div>
-        )}
-
-        {/* Pagination - only show for regular queries, not date-filtered */}
-        {!hasDateFilter && totalPages > 1 && (
+        {/* Pagination - show for both regular and date-filtered queries */}
+        {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs sm:text-sm text-muted text-center sm:text-left">
-              Page {page + 1} of {totalPages || 1}
+              Page {currentPage + 1} of {totalPages || 1}
+              {hasDateFilter && dateFilteredResult?.totalItems && (
+                <span className="ml-2 text-xs text-muted">
+                  ({dateFilteredResult.totalItems} results)
+                </span>
+              )}
             </p>
-            
+
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0}
+                onClick={() => hasDateFilter ? setDateFilterPage(p => Math.max(0, p - 1)) : setPage(p => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  page === 0 
-                    ? "text-muted/50 cursor-not-allowed" 
+                  currentPage === 0
+                    ? "text-muted/50 cursor-not-allowed"
                     : "text-muted hover:text-foreground hover:bg-card"
                 }`}
               >
@@ -607,35 +558,35 @@ export default function Leaderboard() {
               <div className="flex items-center gap-0.5">
                 {/* Always show first page */}
                 <button
-                  onClick={() => setPage(0)}
+                  onClick={() => hasDateFilter ? setDateFilterPage(0) : setPage(0)}
                   className={`px-2.5 py-1 text-xs sm:text-sm rounded-lg transition-colors ${
-                    page === 0
+                    currentPage === 0
                       ? "bg-accent text-white"
                       : "text-muted hover:text-foreground hover:bg-card"
                   }`}
                 >
                   1
                 </button>
-                
+
                 {/* Show ellipsis if needed */}
-                {page > 2 && <span className="text-muted px-1 hidden sm:inline">...</span>}
-                
+                {currentPage > 2 && <span className="text-muted px-1 hidden sm:inline">...</span>}
+
                 {/* Show current page and adjacent pages on desktop, only current on mobile */}
                 {Array.from({ length: totalPages }, (_, i) => {
                   if (i === 0 || i === totalPages - 1) return null; // Already shown
-                  
-                  const showOnDesktop = i >= page - 1 && i <= page + 1;
-                  const showOnMobile = i === page;
-                  
+
+                  const showOnDesktop = i >= currentPage - 1 && i <= currentPage + 1;
+                  const showOnMobile = i === currentPage;
+
                   if (showOnDesktop) {
                     return (
                       <button
                         key={i}
-                        onClick={() => setPage(i)}
+                        onClick={() => hasDateFilter ? setDateFilterPage(i) : setPage(i)}
                         className={`px-2.5 py-1 text-xs sm:text-sm rounded-lg transition-colors ${
                           showOnMobile ? '' : 'hidden sm:inline-block'
                         } ${
-                          i === page
+                          i === currentPage
                             ? "bg-accent text-white"
                             : "text-muted hover:text-foreground hover:bg-card"
                         }`}
@@ -648,14 +599,14 @@ export default function Leaderboard() {
                 })}
                 
                 {/* Show ellipsis if needed */}
-                {page < totalPages - 3 && <span className="text-muted px-1 hidden sm:inline">...</span>}
-                
+                {currentPage < totalPages - 3 && <span className="text-muted px-1 hidden sm:inline">...</span>}
+
                 {/* Always show last page if more than 1 page */}
                 {totalPages > 1 && (
                   <button
-                    onClick={() => setPage(totalPages - 1)}
+                    onClick={() => hasDateFilter ? setDateFilterPage(totalPages - 1) : setPage(totalPages - 1)}
                     className={`px-2.5 py-1 text-xs sm:text-sm rounded-lg transition-colors ${
-                      page === totalPages - 1
+                      currentPage === totalPages - 1
                         ? "bg-accent text-white"
                         : "text-muted hover:text-foreground hover:bg-card"
                     }`}
@@ -664,13 +615,13 @@ export default function Leaderboard() {
                   </button>
                 )}
               </div>
-              
+
               <button
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={page === totalPages - 1}
+                onClick={() => hasDateFilter ? setDateFilterPage(p => Math.min(totalPages - 1, p + 1)) : setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage === totalPages - 1}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  page === totalPages - 1
-                    ? "text-muted/50 cursor-not-allowed" 
+                  currentPage === totalPages - 1
+                    ? "text-muted/50 cursor-not-allowed"
                     : "text-muted hover:text-foreground hover:bg-card"
                 }`}
               >
