@@ -493,7 +493,7 @@ export default function Leaderboard() {
             </div>
 
             {/* Share Card Modal */}
-            {showShareCard && submissions && submissions.find(s => s._id === showShareCard) && (
+            {showShareCard && paginatedSubmissions && paginatedSubmissions.find(s => s._id === showShareCard) && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -502,11 +502,11 @@ export default function Leaderboard() {
               >
                 <div onClick={(e) => e.stopPropagation()}>
                   <ShareCard
-                    rank={submissions.findIndex(s => s._id === showShareCard) + 1}
-                    username={submissions.find(s => s._id === showShareCard)!.username}
-                    totalCost={submissions.find(s => s._id === showShareCard)!.totalCost}
-                    totalTokens={submissions.find(s => s._id === showShareCard)!.totalTokens}
-                    dateRange={submissions.find(s => s._id === showShareCard)!.dateRange}
+                    rank={paginatedSubmissions.findIndex(s => s._id === showShareCard) + 1 + (page * ITEMS_PER_PAGE)}
+                    username={paginatedSubmissions.find(s => s._id === showShareCard)!.username}
+                    totalCost={paginatedSubmissions.find(s => s._id === showShareCard)!.totalCost}
+                    totalTokens={paginatedSubmissions.find(s => s._id === showShareCard)!.totalTokens}
+                    dateRange={paginatedSubmissions.find(s => s._id === showShareCard)!.dateRange}
                     onClose={() => setShowShareCard(null)}
                   />
                 </div>
