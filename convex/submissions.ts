@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internal } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { rateLimiter } from "./rateLimiter";
 import { ConvexError } from "convex/values";
@@ -368,18 +368,15 @@ export const submit = mutation({
       .first();
     
     if (existingProfile) {
-      // Only increment totalSubmissions if this is a new submission
+      // Always increment totalSubmissions for every submit action
       const updates: any = {
         bestSubmission: submissionId,
         githubUsername,
         githubName,
         avatar: githubAvatar,
+        totalSubmissions: existingProfile.totalSubmissions + 1, // Always increment
       };
-      
-      if (!existingSubmission) {
-        updates.totalSubmissions = existingProfile.totalSubmissions + 1;
-      }
-      
+
       await ctx.db.patch(existingProfile._id, updates);
     } else {
       await ctx.db.insert("profiles", {
@@ -470,7 +467,7 @@ export const getLeaderboardByDateRange = query({
     
     // Apply cursor if provided
     if (args.cursor) {
-      query = query.filter(q => q.gt(q.field("_id"), args.cursor));
+      query = query.filter(q => q.gt(q.field("_id"), args.cursor as any));
     }
     
     // Fetch a batch to process

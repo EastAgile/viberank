@@ -36,6 +36,7 @@ export default defineSchema({
     claimedBy: v.optional(v.id("profiles")),
     flaggedForReview: v.optional(v.boolean()),
     flagReasons: v.optional(v.array(v.string())),
+    submissionCount: v.optional(v.number()), // Deprecated - kept for backward compatibility
   })
     .index("by_total_cost", ["totalCost"])
     .index("by_total_tokens", ["totalTokens"])

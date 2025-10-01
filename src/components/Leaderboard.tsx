@@ -23,18 +23,34 @@ export default function Leaderboard() {
 
   const ITEMS_PER_PAGE = 25;
 
-  // Fetch only the current page from backend - proper pagination!
-  const result = useQuery(api.submissions.getLeaderboard, { 
-    sortBy,
-    page,
-    pageSize: ITEMS_PER_PAGE,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-  });
+  // Use different queries based on whether date filtering is active
+  const hasDateFilter = dateFrom && dateTo;
 
-  // Use data directly from backend - no client-side slicing needed
+  // Regular paginated query (no date filter)
+  const regularResult = useQuery(
+    api.submissions.getLeaderboard,
+    hasDateFilter ? "skip" : {
+      sortBy,
+      page,
+      pageSize: ITEMS_PER_PAGE,
+    }
+  );
+
+  // Date-filtered query (uses cursor-based pagination)
+  const dateFilteredResult = useQuery(
+    api.submissions.getLeaderboardByDateRange,
+    !hasDateFilter ? "skip" : {
+      dateFrom,
+      dateTo,
+      sortBy,
+      limit: ITEMS_PER_PAGE,
+    }
+  );
+
+  // Use the appropriate result based on which query is active
+  const result = hasDateFilter ? dateFilteredResult : regularResult;
   const paginatedSubmissions = result?.items;
-  const totalPages = result?.totalPages || 0;
+  const totalPages = hasDateFilter ? 1 : (regularResult?.totalPages || 0); // Date filter doesn't support pagination
   const hasMore = result?.hasMore || false;
 
   const getRankDisplay = (rank: number) => {
@@ -506,8 +522,8 @@ export default function Leaderboard() {
           </div>
         )}
         
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Pagination - only show for regular queries, not date-filtered */}
+        {!hasDateFilter && totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs sm:text-sm text-muted text-center sm:text-left">
               Page {page + 1} of {totalPages || 1}
