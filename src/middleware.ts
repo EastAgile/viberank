@@ -51,8 +51,13 @@ export function middleware(request: NextRequest) {
   });
 }
 
+// Excludes from basic auth:
+// - _next/static, _next/image: Next.js internals
+// - favicon.ico: Favicon file
+// - .*\.(svg|png|jpg|jpeg|gif|webp)$: Image files
+// - api/submit: Public CLI submission endpoint
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/submit|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
