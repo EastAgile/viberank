@@ -4,20 +4,16 @@ export const clientEnv = {
 } as const;
 
 // Server-side environment variables (only available in server components/API routes)
+// No authentication needed - removed all auth-related variables
 export const serverEnv = {
-  GITHUB_ID: process.env.GITHUB_ID!,
-  GITHUB_SECRET: process.env.GITHUB_SECRET!,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
+  // Add any server-side environment variables here if needed
 } as const;
 
 // Environment variable validation for server-side
 export function validateServerEnv() {
-  const requiredEnvVars = [
-    'GITHUB_ID',
-    'GITHUB_SECRET',
-    'NEXTAUTH_SECRET',
-    'NEXTAUTH_URL'
+  // Auth is optional, so we don't validate those variables
+  const requiredEnvVars: string[] = [
+    // Only add truly required variables here
   ];
 
   const missingVars = requiredEnvVars.filter(

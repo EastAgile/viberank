@@ -4,11 +4,12 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { 
-  Github, Calendar, DollarSign, Zap, ArrowLeft, ExternalLink,
-  TrendingUp, Code2, BarChart3, Activity, Hash
+import {
+  Github, Calendar, Zap, ArrowLeft, ExternalLink,
+  TrendingUp, Code2, Activity
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useState } from "react";

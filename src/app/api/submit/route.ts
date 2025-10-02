@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
-import { getServerSession } from "next-auth";
 
 // Initialize Convex client with error handling
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -54,33 +53,19 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check for authentication
-    const session = await getServerSession();
-    
-    let githubUsername: string;
-    let source: "oauth" | "cli";
-    let verified: boolean;
-    
-    if (session?.user?.username) {
-      // Authenticated via OAuth
-      githubUsername = session.user.username;
-      source = "oauth";
-      verified = true;
-      console.log("OAuth submission from:", githubUsername);
-    } else {
-      // CLI submission
-      githubUsername = request.headers.get("X-GitHub-User") || "anonymous";
-      source = "cli";
-      verified = false;
-      console.log("CLI submission from:", githubUsername);
-      
-      // Validate CLI submission has proper username
-      if (githubUsername === "anonymous" || !githubUsername) {
-        return NextResponse.json(
-          { error: "GitHub username is required for CLI submissions. Please provide X-GitHub-User header." },
-          { status: 400 }
-        );
-      }
+    // Get GitHub username from header (CLI/API submission only - no auth)
+    const githubUsername = request.headers.get("X-GitHub-User") || "anonymous";
+    const source = "cli"; // All submissions are from CLI/API since auth is disabled
+    const verified = false; // No OAuth verification available
+
+    console.log("CLI submission from:", githubUsername);
+
+    // Validate submission has proper username
+    if (githubUsername === "anonymous" || !githubUsername) {
+      return NextResponse.json(
+        { error: "GitHub username is required. Please provide X-GitHub-User header." },
+        { status: 400 }
+      );
     }
     
     // Check if ccData is null or undefined
@@ -209,10 +194,10 @@ export async function POST(request: NextRequest) {
       success: true,
       submissionId,
       message: `Successfully submitted data for ${githubUsername}`,
-      profileUrl: `https://viberank.app/profile/${githubUsername}`
+      profileUrl: `https://ccusage.eastagile.com/profile/${githubUsername}`
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Submission error:", error);
     
     // Provide specific error messages for validation errors

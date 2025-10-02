@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from "recharts";
-import { Calendar, TrendingUp, Zap } from "lucide-react";
+import { Calendar, TrendingUp} from "lucide-react";
 import type { TooltipProps } from "@/types/chart";
 import { formatCurrency } from "@/lib/utils";
 
