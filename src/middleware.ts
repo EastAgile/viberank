@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+function httpsEnforcement(request: NextRequest): NextResponse | null {
+  const protocol = request.headers.get("x-forwarded-proto");
+  if (protocol === "http" && process.env.NODE_ENV === "production") {
+    const url = request.nextUrl.clone();
+    url.protocol = "https:";
+    return NextResponse.redirect(url, 301);
+  }
+  return null;
+}
+
+function basicAuth(request: NextRequest): NextResponse | null {
+  const excludedPaths = ["/api/submit"];
+
+  const pathname = request.nextUrl.pathname;
+  const isStaticFile = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/.test(pathname);
+
+  if (excludedPaths.includes(pathname) || isStaticFile) {
+    return null;
+  }
+
   const authHeader = request.headers.get("authorization");
 
   if (!authHeader) {
@@ -40,7 +59,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (username === validUsername && password === validPassword) {
-    return NextResponse.next();
+    return null;
   }
 
   return new NextResponse("Invalid credentials", {
@@ -51,13 +70,19 @@ export function middleware(request: NextRequest) {
   });
 }
 
-// Excludes from basic auth:
-// - _next/static, _next/image: Next.js internals
-// - favicon.ico: Favicon file
-// - .*\.(svg|png|jpg|jpeg|gif|webp)$: Image files
-// - api/submit: Public CLI submission endpoint
+export function middleware(request: NextRequest) {
+  const httpsResponse = httpsEnforcement(request);
+  if (httpsResponse) return httpsResponse;
+
+  const authResponse = basicAuth(request);
+  if (authResponse) return authResponse;
+
+  return NextResponse.next();
+}
+
+// Apply to all routes except Next.js internals
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/submit|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image).*)",
   ],
 };
