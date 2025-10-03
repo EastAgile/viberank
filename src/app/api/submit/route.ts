@@ -4,6 +4,8 @@ import { api } from "../../../../convex/_generated/api";
 
 // Initialize Convex client with error handling
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
+const CCUSAGE_URL = process.env.CCUSAGE_BASE_URL;
+
 if (!CONVEX_URL) {
   console.error("NEXT_PUBLIC_CONVEX_URL is not set!");
 }
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
       success: true,
       submissionId,
       message: `Successfully submitted data for ${githubUsername}`,
-      profileUrl: `https://ccusage.eastagile.com/profile/${githubUsername}`
+      profileUrl: `${CCUSAGE_URL}/profile/${githubUsername}`
     });
     
   } catch (error: any) {
