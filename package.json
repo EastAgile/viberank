@@ -7,10 +7,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
-    "@auth/core": "^0.40.0",
     "@convex-dev/rate-limiter": "^0.2.12",
     "@vercel/analytics": "^1.5.0",
     "clsx": "^2.1.1",
@@ -18,7 +18,6 @@
     "framer-motion": "^12.23.0",
     "lucide-react": "^0.525.0",
     "next": "15.3.4",
-    "next-auth": "^4.24.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
@@ -33,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "turbo": "^2.5.4",
     "typescript": "^5"

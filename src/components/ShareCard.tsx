@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Share2, Download, Twitter, Copy, X } from "lucide-react";
+import { Copy, X } from "lucide-react";
 import { useState } from "react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 

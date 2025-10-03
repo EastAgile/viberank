@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as admin from "../admin.js";
 import type * as rateLimiter from "../rateLimiter.js";
 import type * as stats from "../stats.js";
 import type * as submissions from "../submissions.js";
@@ -28,7 +27,6 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  admin: typeof admin;
   rateLimiter: typeof rateLimiter;
   stats: typeof stats;
   submissions: typeof submissions;

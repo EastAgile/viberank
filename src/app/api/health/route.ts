@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const checks = {
     api: "ok",
     convexUrl: CONVEX_URL ? "configured" : "missing",

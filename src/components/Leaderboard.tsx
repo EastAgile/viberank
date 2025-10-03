@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Medal, Award, DollarSign, Zap, Calendar, User, Share2, Filter, Clock, X, ChevronDown, ArrowUpRight, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react";
+import { Trophy, Medal, Award, DollarSign, Zap, Calendar, User, Share2, X, ChevronDown, ArrowUpRight, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import ShareCard from "./ShareCard";
 import { formatNumber, formatCurrency, getGitHubAvatarUrl } from "@/lib/utils";
@@ -20,7 +19,7 @@ export default function Leaderboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const [dateFilterPage, setDateFilterPage] = useState(0); // Separate page state for date filtering
-  const { data: session } = useSession();
+  // No session needed - authentication removed
 
   const ITEMS_PER_PAGE = 25;
 
@@ -58,7 +57,6 @@ export default function Leaderboard() {
   const result = hasDateFilter ? dateFilteredResult : regularResult;
   const paginatedSubmissions = result?.items;
   const totalPages = result?.totalPages || 0;
-  const hasMore = result?.hasMore || false;
   const currentPage = hasDateFilter ? dateFilterPage : page;
 
   const getRankDisplay = (rank: number) => {
@@ -264,8 +262,7 @@ export default function Leaderboard() {
                 <tbody>
                   {paginatedSubmissions.map((submission, index) => {
                     const actualRank = page * ITEMS_PER_PAGE + index + 1;
-                    const isCurrentUser = session?.user?.username === submission.githubUsername || 
-                                         session?.user?.email === submission.username;
+                    const isCurrentUser = false; // No authentication, can't highlight current user
                     
                     return (
                       <motion.tr
@@ -386,8 +383,7 @@ export default function Leaderboard() {
             <div className="sm:hidden space-y-3">
               {paginatedSubmissions.map((submission, index) => {
                 const actualRank = page * ITEMS_PER_PAGE + index + 1;
-                const isCurrentUser = session?.user?.username === submission.githubUsername || 
-                                     session?.user?.email === submission.username;
+                const isCurrentUser = false; // No authentication, can't highlight current user
                 
                 return (
                   <motion.div

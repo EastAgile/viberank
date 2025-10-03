@@ -1,5 +1,4 @@
 import { query } from "./_generated/server";
-import { v } from "convex/values";
 
 // WARNING: This is not truly "global" - it only processes top submissions
 // to avoid 16MB limit. For accurate global stats, we need pre-aggregation.

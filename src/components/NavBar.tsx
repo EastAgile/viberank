@@ -2,22 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Github, Menu, X, Shield } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { Trophy, Github, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 interface NavBarProps {}
 
-const ADMIN_USERS = ["nikshepsvn"];
-
 export default function NavBar({}: NavBarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { data: session } = useSession();
   const pathname = usePathname();
-  
-  const isAdmin = session?.user?.username && ADMIN_USERS.includes(session.user.username);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,8 +21,8 @@ export default function NavBar({}: NavBarProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navItems = [
-    ...(isAdmin ? [{ name: "Admin", href: "/admin", icon: Shield }] : []),
+  const navItems: any[] = [
+    // No nav items needed since no admin or auth features
   ];
 
   return (
