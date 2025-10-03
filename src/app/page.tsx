@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Leaderboard from "@/components/Leaderboard";
-import NavBar from "@/components/NavBar";
 import { formatNumber, formatLargeNumber } from "@/lib/utils";
 
 export default function Home() {
@@ -12,9 +11,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <NavBar />
-
       {/* Main Content */}
       <main className={`flex-1  pt-14 md:pt-0 transition-all`}>
         {/* Hero Section */}
