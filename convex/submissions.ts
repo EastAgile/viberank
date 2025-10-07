@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
 import { rateLimiter } from "./rateLimiter";
 
 export const submit = mutation({
@@ -728,6 +728,96 @@ export const claimAndMergeSubmissions = mutation({
       submissionId: baseSubmission._id,
       mergedCount: submissions.length
     };
+  },
+});
+
+// Helper action to fetch GitHub name from API
+export const fetchGitHubName = action({
+  args: {
+    githubUsername: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { githubUsername } = args;
+
+    try {
+      const response = await fetch(`https://api.github.com/users/${githubUsername}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Viberank-App'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        return {
+          name: userData.name || githubUsername, // Fallback to username if no name
+          avatar: userData.avatar_url || null
+        };
+      }
+    } catch (error) {
+      console.warn(`Error fetching GitHub data for ${githubUsername}:`, error);
+    }
+
+    // On error or not found, return username as fallback
+    return {
+      name: githubUsername,
+      avatar: null
+    };
+  },
+});
+
+// Mutation to update GitHub name in profiles table
+export const updateProfileGitHubName = mutation({
+  args: {
+    username: v.string(),
+    githubName: v.string(),
+    githubAvatar: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { username, githubName, githubAvatar } = args;
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+
+    if (!profile) {
+      return { success: false };
+    }
+
+    const updates: any = {
+      githubName: githubName,
+    };
+
+    if (githubAvatar) {
+      updates.avatar = githubAvatar;
+    }
+
+    await ctx.db.patch(profile._id, updates);
+    return { success: true };
+  },
+});
+
+// Mutation to update GitHub name in submissions table
+export const updateSubmissionGitHubName = mutation({
+  args: {
+    submissionId: v.id("submissions"),
+    githubName: v.string(),
+    githubAvatar: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { submissionId, githubName, githubAvatar } = args;
+
+    const updates: any = {
+      githubName: githubName,
+    };
+
+    if (githubAvatar) {
+      updates.githubAvatar = githubAvatar;
+    }
+
+    await ctx.db.patch(submissionId, updates);
+    return { success: true };
   },
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -12,7 +12,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -20,6 +20,64 @@ export default function ProfilePage() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<"7d" | "30d" | "all">("30d");
   
   const profileData = useQuery(api.submissions.getProfile, { username });
+  const fetchGitHubName = useAction(api.submissions.fetchGitHubName);
+  const updateProfileGitHubName = useMutation(api.submissions.updateProfileGitHubName);
+  const updateSubmissionGitHubName = useMutation(api.submissions.updateSubmissionGitHubName);
+
+  // Check and update GitHub names if missing
+  useEffect(() => {
+    if (profileData) {
+      const updateMissingGitHubNames = async () => {
+        // Check profile itself
+        if (profileData.githubUsername && !profileData.githubName) {
+          try {
+            // Fetch GitHub name
+            const githubData = await fetchGitHubName({
+              githubUsername: profileData.githubUsername
+            });
+
+            // Update profile
+            await updateProfileGitHubName({
+              username: profileData.username,
+              githubName: githubData.name,
+              githubAvatar: githubData.avatar || undefined
+            });
+
+            console.log(`Updated GitHub name for profile: ${githubData.name}`);
+          } catch (error) {
+            console.error('Error updating profile GitHub name:', error);
+          }
+        }
+
+        // Check submissions
+        if (profileData.submissions) {
+          for (const submission of profileData.submissions) {
+            if (submission.githubUsername && !submission.githubName) {
+              try {
+                // Fetch GitHub name
+                const githubData = await fetchGitHubName({
+                  githubUsername: submission.githubUsername
+                });
+
+                // Update submission
+                await updateSubmissionGitHubName({
+                  submissionId: submission._id,
+                  githubName: githubData.name,
+                  githubAvatar: githubData.avatar || undefined
+                });
+
+                console.log(`Updated GitHub name for submission: ${githubData.name}`);
+              } catch (error) {
+                console.error(`Error updating submission GitHub name:`, error);
+              }
+            }
+          }
+        }
+      };
+
+      updateMissingGitHubNames();
+    }
+  }, [profileData, fetchGitHubName, updateProfileGitHubName, updateSubmissionGitHubName]);
 
   if (profileData === undefined) {
     return (
