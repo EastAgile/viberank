@@ -750,7 +750,7 @@ export const fetchGitHubUserData = action({
       if (response.ok) {
         const userData = await response.json();
         return {
-          name: userData.name || null,
+          name: userData.name || username,
           avatar: userData.avatar_url || null
         };
       }
@@ -758,7 +758,7 @@ export const fetchGitHubUserData = action({
       console.warn(`Error fetching GitHub data for ${username}:`, error);
     }
 
-    return { name: null, avatar: null };
+    return { name: username, avatar: null };
   },
 });
 
@@ -806,14 +806,13 @@ export const updateGitHubNames = action({
     for (const { id, username } of submissionsToUpdate) {
       const githubData = await ctx.runAction(api.submissions.fetchGitHubUserData, { username });
 
-      if (githubData.name || githubData.avatar) {
-        await ctx.runMutation(api.submissions.updateSubmissionGitHubData, {
-          submissionId: id,
-          githubName: githubData.name || undefined,
-          githubAvatar: githubData.avatar || undefined,
-        });
-        updated++;
-      }
+      // Always update since we now guarantee a name (either from GitHub or fallback to username)
+      await ctx.runMutation(api.submissions.updateSubmissionGitHubData, {
+        submissionId: id,
+        githubName: githubData.name,  // Will always have a value now
+        githubAvatar: githubData.avatar || undefined,
+      });
+      updated++;
     }
 
     return { updated };
