@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { rateLimiter } from "./rateLimiter";
-import { api } from "./_generated/api";
 
 export const submit = mutation({
   args: {
@@ -732,15 +731,16 @@ export const claimAndMergeSubmissions = mutation({
   },
 });
 
-export const fetchGitHubUserData = action({
+// Helper action to fetch GitHub name from API
+export const fetchGitHubName = action({
   args: {
-    username: v.string(),
+    githubUsername: v.string(),
   },
   handler: async (ctx, args) => {
-    const { username } = args;
+    const { githubUsername } = args;
 
     try {
-      const response = await fetch(`https://api.github.com/users/${username}`, {
+      const response = await fetch(`https://api.github.com/users/${githubUsername}`, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'Viberank-App'
@@ -750,81 +750,74 @@ export const fetchGitHubUserData = action({
       if (response.ok) {
         const userData = await response.json();
         return {
-          name: userData.name || username,
+          name: userData.name || githubUsername, // Fallback to username if no name
           avatar: userData.avatar_url || null
         };
       }
     } catch (error) {
-      console.warn(`Error fetching GitHub data for ${username}:`, error);
+      console.warn(`Error fetching GitHub data for ${githubUsername}:`, error);
     }
 
-    return { name: username, avatar: null };
+    // On error or not found, return username as fallback
+    return {
+      name: githubUsername,
+      avatar: null
+    };
   },
 });
 
-export const updateSubmissionGitHubData = mutation({
+// Mutation to update GitHub name in profiles table
+export const updateProfileGitHubName = mutation({
+  args: {
+    username: v.string(),
+    githubName: v.string(),
+    githubAvatar: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { username, githubName, githubAvatar } = args;
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+
+    if (!profile) {
+      return { success: false };
+    }
+
+    const updates: any = {
+      githubName: githubName,
+    };
+
+    if (githubAvatar) {
+      updates.avatar = githubAvatar;
+    }
+
+    await ctx.db.patch(profile._id, updates);
+    return { success: true };
+  },
+});
+
+// Mutation to update GitHub name in submissions table
+export const updateSubmissionGitHubName = mutation({
   args: {
     submissionId: v.id("submissions"),
-    githubName: v.optional(v.string()),
+    githubName: v.string(),
     githubAvatar: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { submissionId, githubName, githubAvatar } = args;
 
-    const updates: any = {};
-    if (githubName) updates.githubName = githubName;
-    if (githubAvatar) updates.githubAvatar = githubAvatar;
+    const updates: any = {
+      githubName: githubName,
+    };
 
-    if (Object.keys(updates).length > 0) {
-      await ctx.db.patch(submissionId, updates);
-      return { success: true };
+    if (githubAvatar) {
+      updates.githubAvatar = githubAvatar;
     }
 
-    return { success: false };
-  },
-});
-
-export const updateGitHubNames = action({
-  args: {
-    submissionIds: v.array(v.id("submissions")),
-  },
-  handler: async (ctx, args) => {
-    const { submissionIds } = args;
-    let updated = 0;
-
-    // First, get the submissions to check which ones need updating
-    const submissionsToUpdate: Array<{ id: any, username: string }> = [];
-
-    for (const id of submissionIds) {
-      const submission = await ctx.runQuery(api.submissions.getSubmissionById, { submissionId: id });
-      if (submission && submission.githubUsername && !submission.githubName) {
-        submissionsToUpdate.push({ id, username: submission.githubUsername });
-      }
-    }
-
-    // Fetch GitHub data for each submission that needs it
-    for (const { id, username } of submissionsToUpdate) {
-      const githubData = await ctx.runAction(api.submissions.fetchGitHubUserData, { username });
-
-      // Always update since we now guarantee a name (either from GitHub or fallback to username)
-      await ctx.runMutation(api.submissions.updateSubmissionGitHubData, {
-        submissionId: id,
-        githubName: githubData.name,  // Will always have a value now
-        githubAvatar: githubData.avatar || undefined,
-      });
-      updated++;
-    }
-
-    return { updated };
-  },
-});
-
-export const getSubmissionById = query({
-  args: {
-    submissionId: v.id("submissions"),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.submissionId);
+    await ctx.db.patch(submissionId, updates);
+    return { success: true };
   },
 });
 

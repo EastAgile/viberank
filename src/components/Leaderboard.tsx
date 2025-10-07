@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, User, Share2, X, ChevronDown, ArrowUpRight, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Link from "next/link";
 import ShareCard from "./ShareCard";
@@ -22,7 +22,8 @@ export default function Leaderboard() {
   // No session needed - authentication removed
 
   const ITEMS_PER_PAGE = 25;
-  const updateGitHubNames = useAction(api.submissions.updateGitHubNames);
+  const fetchGitHubName = useAction(api.submissions.fetchGitHubName);
+  const updateSubmissionGitHubName = useMutation(api.submissions.updateSubmissionGitHubName);
 
   // Use different queries based on whether date filtering is active
   const hasDateFilter = dateFrom && dateTo;
@@ -60,26 +61,39 @@ export default function Leaderboard() {
   const totalPages = result?.totalPages || 0;
   const currentPage = hasDateFilter ? dateFilterPage : page;
 
-  // Check for submissions without GitHub names and update them
+  // Check for submissions without GitHub names and fetch/update them
   useEffect(() => {
     if (paginatedSubmissions && paginatedSubmissions.length > 0) {
-      const submissionsWithoutNames = paginatedSubmissions
-        .filter(sub => sub.githubUsername && !sub.githubName)
-        .map(sub => sub._id);
+      const updateMissingGitHubNames = async () => {
+        for (const submission of paginatedSubmissions) {
+          // Skip if no GitHub username or already has a name
+          if (!submission.githubUsername || submission.githubName) {
+            continue;
+          }
 
-      if (submissionsWithoutNames.length > 0) {
-        updateGitHubNames({ submissionIds: submissionsWithoutNames })
-          .then(result => {
-            if (result.updated > 0) {
-              console.log(`Updated GitHub names for ${result.updated} submissions`);
-            }
-          })
-          .catch(error => {
-            console.error('Error updating GitHub names:', error);
-          });
-      }
+          try {
+            // Fetch GitHub name using Convex action
+            const githubData = await fetchGitHubName({
+              githubUsername: submission.githubUsername
+            });
+
+            // Update submission with fetched name
+            await updateSubmissionGitHubName({
+              submissionId: submission._id,
+              githubName: githubData.name,
+              githubAvatar: githubData.avatar || undefined
+            });
+
+            console.log(`Updated GitHub name for ${submission.githubUsername}: ${githubData.name}`);
+          } catch (error) {
+            console.error(`Error updating GitHub name for ${submission.githubUsername}:`, error);
+          }
+        }
+      };
+
+      updateMissingGitHubNames();
     }
-  }, [paginatedSubmissions, updateGitHubNames]);
+  }, [paginatedSubmissions, fetchGitHubName, updateSubmissionGitHubName]);
 
   const getRankDisplay = (rank: number) => {
     if (rank === 1) return (
