@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Medal, Award, DollarSign, Zap, Calendar, User, Share2, X, ChevronDown, ArrowUpRight, ChevronLeft, ChevronRight, BadgeCheck } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Link from "next/link";
 import ShareCard from "./ShareCard";
@@ -22,6 +22,7 @@ export default function Leaderboard() {
   // No session needed - authentication removed
 
   const ITEMS_PER_PAGE = 25;
+  const updateGitHubNames = useAction(api.submissions.updateGitHubNames);
 
   // Use different queries based on whether date filtering is active
   const hasDateFilter = dateFrom && dateTo;
@@ -58,6 +59,27 @@ export default function Leaderboard() {
   const paginatedSubmissions = result?.items;
   const totalPages = result?.totalPages || 0;
   const currentPage = hasDateFilter ? dateFilterPage : page;
+
+  // Check for submissions without GitHub names and update them
+  useEffect(() => {
+    if (paginatedSubmissions && paginatedSubmissions.length > 0) {
+      const submissionsWithoutNames = paginatedSubmissions
+        .filter(sub => sub.githubUsername && !sub.githubName)
+        .map(sub => sub._id);
+
+      if (submissionsWithoutNames.length > 0) {
+        updateGitHubNames({ submissionIds: submissionsWithoutNames })
+          .then(result => {
+            if (result.updated > 0) {
+              console.log(`Updated GitHub names for ${result.updated} submissions`);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating GitHub names:', error);
+          });
+      }
+    }
+  }, [paginatedSubmissions, updateGitHubNames]);
 
   const getRankDisplay = (rank: number) => {
     if (rank === 1) return (
@@ -307,11 +329,11 @@ export default function Leaderboard() {
                             </div>
                             <div>
                               <div className="flex items-center gap-1.5">
-                                <Link 
+                                <Link
                                   href={`/profile/${encodeURIComponent(submission.githubUsername || submission.username)}`}
                                   className="font-medium hover:text-accent transition-colors"
                                 >
-                                  {submission.githubUsername || submission.username}
+                                  {submission.githubName || submission.githubUsername || submission.username}
                                 </Link>
                                 {submission.verified && (
                                   <div className="group/badge relative inline-flex">
@@ -322,9 +344,9 @@ export default function Leaderboard() {
                                   </div>
                                 )}
                               </div>
-                              {submission.githubName && submission.githubName !== submission.githubUsername && (
+                              {submission.githubUsername && (
                                 <p className="text-xs text-muted mt-0.5">
-                                  {submission.githubName}
+                                  @{submission.githubUsername}
                                 </p>
                               )}
                             </div>
@@ -421,11 +443,13 @@ export default function Leaderboard() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <Link 
-                            href={`/profile/${encodeURIComponent(submission.githubUsername || submission.username)}`}
-                            className="group inline-flex items-center gap-1 font-medium hover:text-accent transition-colors text-sm truncate"
-                          >
-                            <span className="truncate">{submission.githubUsername || submission.username}</span>
+                          <div className="flex items-center gap-1 text-sm">
+                            <Link
+                              href={`/profile/${encodeURIComponent(submission.githubUsername || submission.username)}`}
+                              className="font-medium hover:text-accent transition-colors truncate"
+                            >
+                              {submission.githubName || submission.githubUsername || submission.username}
+                            </Link>
                             {submission.verified && (
                               <div className="group/badge relative inline-flex flex-shrink-0">
                                 <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
@@ -434,10 +458,10 @@ export default function Leaderboard() {
                                 </div>
                               </div>
                             )}
-                          </Link>
-                          {submission.githubName && submission.githubName !== submission.githubUsername && (
+                          </div>
+                          {submission.githubUsername && (
                             <p className="text-xs text-muted truncate">
-                              {submission.githubName}
+                              @{submission.githubUsername}
                             </p>
                           )}
                         </div>
