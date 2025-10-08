@@ -11,6 +11,17 @@ import { formatNumber, formatCurrency, getGitHubAvatarUrl } from "@/lib/utils";
 
 type SortBy = "cost" | "tokens";
 
+const formatLastActiveDate = (dailyBreakdown: any[]) => {
+  if (dailyBreakdown.length === 0) return '-';
+
+  const lastDate = dailyBreakdown[dailyBreakdown.length - 1].date;
+  return new Date(lastDate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 export default function Leaderboard() {
   const [sortBy, setSortBy] = useState<SortBy>("cost");
   const [showShareCard, setShowShareCard] = useState<string | null>(null);
@@ -389,13 +400,7 @@ export default function Leaderboard() {
                         </td>
                         <td className="py-5 px-6 text-right">
                           <p className="text-sm text-muted">
-                            {submission.dailyBreakdown.length > 0
-                              ? new Date(submission.dailyBreakdown[submission.dailyBreakdown.length - 1].date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })
-                              : '-'}
+                            {formatLastActiveDate(submission.dailyBreakdown)}
                           </p>
                         </td>
                         <td className="py-5 px-6">
@@ -527,13 +532,7 @@ export default function Leaderboard() {
                       </div>
                       <div className="pt-1 border-t border-border/30">
                         <p className="text-[10px] text-muted">
-                          Last usage date: {submission.dailyBreakdown.length > 0
-                            ? new Date(submission.dailyBreakdown[submission.dailyBreakdown.length - 1].date).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })
-                            : '-'}
+                          Last usage date: {formatLastActiveDate(submission.dailyBreakdown)}
                         </p>
                       </div>
                       {isCurrentUser && (
