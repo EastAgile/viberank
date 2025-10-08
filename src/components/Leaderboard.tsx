@@ -12,6 +12,17 @@ import { formatNumber, formatCurrency, getGitHubAvatarUrl } from "@/lib/utils";
 type SortBy = "cost" | "tokens";
 type FilterPreset = 'all' | 'month' | 7 | 30;
 
+const formatLastActiveDate = (dailyBreakdown: any[]) => {
+  if (dailyBreakdown.length === 0) return '-';
+
+  const lastDate = dailyBreakdown[dailyBreakdown.length - 1].date;
+  return new Date(lastDate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 export default function Leaderboard() {
   const [sortBy, setSortBy] = useState<SortBy>("cost");
   const [showShareCard, setShowShareCard] = useState<string | null>(null);
@@ -324,6 +335,7 @@ export default function Leaderboard() {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Developer</th>
                       <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Spent</th>
                       <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Tokens</th>
+                      <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Last Usage Date</th>
                       <th className="w-16"></th>
                     </tr>
                   </thead>
@@ -417,6 +429,11 @@ export default function Leaderboard() {
                               {submission.dailyBreakdown.length} days
                             </p>
                           </div>
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                          <p className="text-sm text-muted">
+                            {formatLastActiveDate(submission.dailyBreakdown)}
+                          </p>
                         </td>
                         <td className="py-5 px-6">
                           <div className="flex items-center justify-end gap-2">
@@ -544,6 +561,11 @@ export default function Leaderboard() {
                             {submission.dailyBreakdown.length} days
                           </p>
                         </div>
+                      </div>
+                      <div className="pt-1 border-t border-border/30">
+                        <p className="text-[10px] text-muted">
+                          Last usage date: {formatLastActiveDate(submission.dailyBreakdown)}
+                        </p>
                       </div>
                       {isCurrentUser && (
                         <div className="text-center pt-1">
