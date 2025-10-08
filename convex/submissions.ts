@@ -503,12 +503,7 @@ export const getLeaderboardByDateRange = query({
       processedItems.push({
         ...submission,
         ...filteredTotals, // Override with filtered totals
-        originalTotals: {
-          totalCost: submission.totalCost,
-          totalTokens: submission.totalTokens,
-        },
-        isFiltered: true,
-        daysInRange: filteredDays.length,
+        dailyBreakdown: filteredDays, 
       });
     }
 
