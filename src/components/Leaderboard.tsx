@@ -10,6 +10,7 @@ import ShareCard from "./ShareCard";
 import { formatNumber, formatCurrency, getGitHubAvatarUrl } from "@/lib/utils";
 
 type SortBy = "cost" | "tokens";
+type FilterPreset = 'all' | 'month' | 7 | 30;
 
 export default function Leaderboard() {
   const [sortBy, setSortBy] = useState<SortBy>("cost");
@@ -136,18 +137,18 @@ export default function Leaderboard() {
     return <span className="text-lg font-semibold text-muted">{rank}</span>;
   };
 
-  const setQuickFilter = (filterType: 'all' | 'month' | number) => {
-    if (filterType === 'all') {
+  const setQuickFilter = (presets: FilterPreset) => {
+    if (presets === 'all') {
       setDateFrom("");
       setDateTo("");
-    } else if (filterType === 'month') {
+    } else if (presets === 'month') {
       const monthRange = getCurrentMonthRange();
       setDateFrom(monthRange.from);
       setDateTo(monthRange.to);
     } else {
       const today = new Date();
       const from = new Date(today);
-      from.setDate(today.getDate() - filterType);
+      from.setDate(today.getDate() - presets);
       setDateFrom(from.toISOString().split('T')[0]);
       setDateTo(today.toISOString().split('T')[0]);
     }
