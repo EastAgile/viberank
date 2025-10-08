@@ -14,12 +14,22 @@ type SortBy = "cost" | "tokens";
 export default function Leaderboard() {
   const [sortBy, setSortBy] = useState<SortBy>("cost");
   const [showShareCard, setShowShareCard] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+
+  const getCurrentMonthRange = () => {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    return {
+      from: firstDay.toISOString().split('T')[0],
+      to: today.toISOString().split('T')[0]
+    };
+  };
+
+  const monthRange = getCurrentMonthRange();
+  const [dateFrom, setDateFrom] = useState<string>(monthRange.from);
+  const [dateTo, setDateTo] = useState<string>(monthRange.to);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
-  const [dateFilterPage, setDateFilterPage] = useState(0); // Separate page state for date filtering
-  // No session needed - authentication removed
+  const [dateFilterPage, setDateFilterPage] = useState(0);
 
   const ITEMS_PER_PAGE = 25;
   const fetchGitHubName = useAction(api.submissions.fetchGitHubName);
@@ -126,19 +136,27 @@ export default function Leaderboard() {
     return <span className="text-lg font-semibold text-muted">{rank}</span>;
   };
 
-  // Quick filter functions
-  const setQuickFilter = (days: number | null) => {
-    if (days === null) {
+  const setQuickFilter = (filterType: 'all' | 'month' | number) => {
+    if (filterType === 'all') {
       setDateFrom("");
       setDateTo("");
+    } else if (filterType === 'month') {
+      const monthRange = getCurrentMonthRange();
+      setDateFrom(monthRange.from);
+      setDateTo(monthRange.to);
     } else {
       const today = new Date();
       const from = new Date(today);
-      from.setDate(today.getDate() - days);
+      from.setDate(today.getDate() - filterType);
       setDateFrom(from.toISOString().split('T')[0]);
       setDateTo(today.toISOString().split('T')[0]);
     }
-    setPage(0); // Reset to first page when filtering
+    setPage(0);
+  };
+
+  const isThisMonthFilter = () => {
+    const monthRange = getCurrentMonthRange();
+    return dateFrom === monthRange.from && dateTo === monthRange.to;
   };
 
   return (
@@ -151,7 +169,19 @@ export default function Leaderboard() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setQuickFilter(null)}
+              onClick={() => setQuickFilter('month')}
+              className={`whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                isThisMonthFilter()
+                  ? "bg-accent text-white"
+                  : "text-muted hover:text-foreground hover:bg-card/50"
+              }`}
+            >
+              This Month
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setQuickFilter('all')}
               className={`whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
                 !dateFrom && !dateTo
                   ? "bg-accent text-white"
@@ -165,7 +195,7 @@ export default function Leaderboard() {
               whileTap={{ scale: 0.98 }}
               onClick={() => setQuickFilter(7)}
               className={`whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                dateFrom && dateTo && 
+                dateFrom && dateTo &&
                 new Date(dateTo).getTime() - new Date(dateFrom).getTime() === 7 * 24 * 60 * 60 * 1000
                   ? "bg-accent text-white"
                   : "text-muted hover:text-foreground hover:bg-card/50"
@@ -178,7 +208,7 @@ export default function Leaderboard() {
               whileTap={{ scale: 0.98 }}
               onClick={() => setQuickFilter(30)}
               className={`whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-                dateFrom && dateTo && 
+                dateFrom && dateTo &&
                 Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (24 * 60 * 60 * 1000)) === 30
                   ? "bg-accent text-white"
                   : "text-muted hover:text-foreground hover:bg-card/50"
