@@ -292,6 +292,7 @@ export default function Leaderboard() {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Developer</th>
                       <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Spent</th>
                       <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Tokens</th>
+                      <th className="text-right py-4 px-6 text-xs font-semibold text-muted uppercase tracking-wider">Last Usage Date</th>
                       <th className="w-16"></th>
                     </tr>
                   </thead>
@@ -385,6 +386,17 @@ export default function Leaderboard() {
                               {submission.dailyBreakdown.length} days
                             </p>
                           </div>
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                          <p className="text-sm text-muted">
+                            {submission.dailyBreakdown.length > 0
+                              ? new Date(submission.dailyBreakdown[submission.dailyBreakdown.length - 1].date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })
+                              : '-'}
+                          </p>
                         </td>
                         <td className="py-5 px-6">
                           <div className="flex items-center justify-end gap-2">
@@ -512,6 +524,17 @@ export default function Leaderboard() {
                             {submission.dailyBreakdown.length} days
                           </p>
                         </div>
+                      </div>
+                      <div className="pt-1 border-t border-border/30">
+                        <p className="text-[10px] text-muted">
+                          Last active: {submission.dailyBreakdown.length > 0
+                            ? new Date(submission.dailyBreakdown[submission.dailyBreakdown.length - 1].date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })
+                            : '-'}
+                        </p>
                       </div>
                       {isCurrentUser && (
                         <div className="text-center pt-1">
