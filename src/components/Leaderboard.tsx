@@ -527,7 +527,7 @@ export default function Leaderboard() {
                       </div>
                       <div className="pt-1 border-t border-border/30">
                         <p className="text-[10px] text-muted">
-                          Last active: {submission.dailyBreakdown.length > 0
+                          Last usage date: {submission.dailyBreakdown.length > 0
                             ? new Date(submission.dailyBreakdown[submission.dailyBreakdown.length - 1].date).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
