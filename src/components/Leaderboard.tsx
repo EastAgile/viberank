@@ -137,18 +137,18 @@ export default function Leaderboard() {
     return <span className="text-lg font-semibold text-muted">{rank}</span>;
   };
 
-  const setQuickFilter = (presets: FilterPreset) => {
-    if (presets === 'all') {
+  const setQuickFilter = (preset: FilterPreset) => {
+    if (preset === 'all') {
       setDateFrom("");
       setDateTo("");
-    } else if (presets === 'month') {
+    } else if (preset === 'month') {
       const monthRange = getCurrentMonthRange();
       setDateFrom(monthRange.from);
       setDateTo(monthRange.to);
     } else {
       const today = new Date();
       const from = new Date(today);
-      from.setDate(today.getDate() - presets);
+      from.setDate(today.getDate() - preset);
       setDateFrom(from.toISOString().split('T')[0]);
       setDateTo(today.toISOString().split('T')[0]);
     }
