@@ -239,6 +239,7 @@ export default function Leaderboard() {
 
           {/* Sort Options */}
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted mr-1">Sort by:</span>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
