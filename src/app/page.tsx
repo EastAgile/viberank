@@ -22,11 +22,25 @@ export default function Home() {
               transition={{ duration: 0.6 }}
               className="text-center mb-8 sm:mb-12"
             >
+              {/* Dual Logo Section */}
+              <div className="flex items-center justify-center gap-6 mb-12">
+                <img
+                  src="/east_agile_logo.png"
+                  alt="East Agile"
+                  className="h-12 w-auto"
+                />
+                <img
+                  src="/viberank-logo.svg"
+                  alt="Viberank"
+                  className="h-12 w-12"
+                />
+              </div>
+
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Claude Code Leaderboard
+                East Agile CCUsage
               </h2>
               <p className="text-base sm:text-lg text-muted max-w-2xl mx-auto px-4">
-                Track and compare AI-powered development usage across the community
+                Track and compare AI-powered development usage across the company
               </p>
             </motion.div>
 
