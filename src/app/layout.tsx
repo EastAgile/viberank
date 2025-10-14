@@ -15,14 +15,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Viberank - Claude Code Usage Leaderboard | Track AI Development Stats",
+  title: "East Agile CCUsage",
   description: "Track and compare Claude Code usage across developers. Upload your cc.json file, view detailed analytics, and see how you rank in the global AI-powered development community.",
   keywords: ["claude", "claude code", "anthropic", "ai coding", "leaderboard", "developer stats", "code usage", "ai development", "claude analytics", "developer ranking", "cc.json", "npx viberank", "vibe coding", "ai pair programming"],
   authors: [{ name: "Viberank Team" }],
   creator: "Viberank",
   publisher: "Viberank",
   openGraph: {
-    title: "Viberank - Claude Code Usage Leaderboard",
+    title: "East Agile CCUsage",
     description: "Track and compare your Claude Code usage with developers worldwide. View detailed analytics and climb the AI development leaderboard.",
     url: "https://viberank.com",
     siteName: "Viberank",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Viberank - Claude Code Usage Leaderboard",
+    title: "East Agile CCUsage",
     description: "Track and compare your Claude Code usage with developers worldwide. Join the AI development leaderboard today!",
     images: ["/api/og"],
     creator: "@viberank",
