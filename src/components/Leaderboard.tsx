@@ -177,7 +177,7 @@ export default function Leaderboard() {
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           {/* Quick Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 pb-1">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -341,9 +341,9 @@ export default function Leaderboard() {
                   </thead>
                 <tbody>
                   {paginatedSubmissions.map((submission, index) => {
-                    const actualRank = page * ITEMS_PER_PAGE + index + 1;
+                    const actualRank = currentPage * ITEMS_PER_PAGE + index + 1;
                     const isCurrentUser = false; // No authentication, can't highlight current user
-                    
+
                     return (
                       <motion.tr
                         key={submission._id}
@@ -467,9 +467,9 @@ export default function Leaderboard() {
             {/* Mobile View */}
             <div className="sm:hidden space-y-3">
               {paginatedSubmissions.map((submission, index) => {
-                const actualRank = page * ITEMS_PER_PAGE + index + 1;
+                const actualRank = currentPage * ITEMS_PER_PAGE + index + 1;
                 const isCurrentUser = false; // No authentication, can't highlight current user
-                
+
                 return (
                   <motion.div
                     key={submission._id}
@@ -590,7 +590,7 @@ export default function Leaderboard() {
               >
                 <div onClick={(e) => e.stopPropagation()}>
                   <ShareCard
-                    rank={paginatedSubmissions.findIndex(s => s._id === showShareCard) + 1 + (page * ITEMS_PER_PAGE)}
+                    rank={paginatedSubmissions.findIndex(s => s._id === showShareCard) + 1 + (currentPage * ITEMS_PER_PAGE)}
                     username={paginatedSubmissions.find(s => s._id === showShareCard)!.username}
                     totalCost={paginatedSubmissions.find(s => s._id === showShareCard)!.totalCost}
                     totalTokens={paginatedSubmissions.find(s => s._id === showShareCard)!.totalTokens}
