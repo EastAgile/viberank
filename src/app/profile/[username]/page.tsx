@@ -37,13 +37,15 @@ export default function ProfilePage() {
             });
 
             // Update profile
-            await updateProfileGitHubName({
+            const result = await updateProfileGitHubName({
               username: profileData.username,
               githubName: githubData.name,
               githubAvatar: githubData.avatar || undefined
             });
 
-            console.log(`Updated GitHub name for profile: ${githubData.name}`);
+            if (result.updated) {
+              console.log(`Updated GitHub name for profile: ${githubData.name}`);
+            }
           } catch (error) {
             console.error('Error updating profile GitHub name:', error);
           }
@@ -51,8 +53,13 @@ export default function ProfilePage() {
 
         // Check submissions
         if (profileData.submissions) {
-          for (const submission of profileData.submissions) {
+          for (let i = 0; i < profileData.submissions.length; i++) {
+            const submission = profileData.submissions[i];
             if (submission.githubUsername && !submission.githubName) {
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+
               try {
                 // Fetch GitHub name
                 const githubData = await fetchGitHubName({
@@ -60,13 +67,15 @@ export default function ProfilePage() {
                 });
 
                 // Update submission
-                await updateSubmissionGitHubName({
+                const result = await updateSubmissionGitHubName({
                   submissionId: submission._id,
                   githubName: githubData.name,
                   githubAvatar: githubData.avatar || undefined
                 });
 
-                console.log(`Updated GitHub name for submission: ${githubData.name}`);
+                if (result.updated) {
+                  console.log(`Updated GitHub name for submission: ${githubData.name}`);
+                }
               } catch (error) {
                 console.error(`Error updating submission GitHub name:`, error);
               }

@@ -87,10 +87,15 @@ export default function Leaderboard() {
   useEffect(() => {
     if (paginatedSubmissions && paginatedSubmissions.length > 0) {
       const updateMissingGitHubNames = async () => {
-        for (const submission of paginatedSubmissions) {
+        for (let i = 0; i < paginatedSubmissions.length; i++) {
+          const submission = paginatedSubmissions[i];
           // Skip if no GitHub username or already has a name
           if (!submission.githubUsername || submission.githubName) {
             continue;
+          }
+
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
 
           try {
@@ -100,13 +105,15 @@ export default function Leaderboard() {
             });
 
             // Update submission with fetched name
-            await updateSubmissionGitHubName({
+            const result = await updateSubmissionGitHubName({
               submissionId: submission._id,
               githubName: githubData.name,
               githubAvatar: githubData.avatar || undefined
             });
 
-            console.log(`Updated GitHub name for ${submission.githubUsername}: ${githubData.name}`);
+            if (result.updated) {
+              console.log(`Updated GitHub name for ${submission.githubUsername}: ${githubData.name}`);
+            }
           } catch (error) {
             console.error(`Error updating GitHub name for ${submission.githubUsername}:`, error);
           }

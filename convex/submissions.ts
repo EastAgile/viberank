@@ -780,6 +780,10 @@ export const updateProfileGitHubName = mutation({
       return { success: false };
     }
 
+    if (profile.githubName === githubName && profile.avatar === githubAvatar) {
+      return { success: true, skipped: true };
+    }
+
     const updates: any = {
       githubName: githubName,
     };
@@ -789,7 +793,7 @@ export const updateProfileGitHubName = mutation({
     }
 
     await ctx.db.patch(profile._id, updates);
-    return { success: true };
+    return { success: true, updated: true };
   },
 });
 
@@ -803,6 +807,16 @@ export const updateSubmissionGitHubName = mutation({
   handler: async (ctx, args) => {
     const { submissionId, githubName, githubAvatar } = args;
 
+    const submission = await ctx.db.get(submissionId);
+
+    if (!submission) {
+      throw new Error("Submission not found");
+    }
+
+    if (submission.githubName === githubName) {
+      return { success: true, skipped: true };
+    }
+
     const updates: any = {
       githubName: githubName,
     };
@@ -812,7 +826,7 @@ export const updateSubmissionGitHubName = mutation({
     }
 
     await ctx.db.patch(submissionId, updates);
-    return { success: true };
+    return { success: true, updated: true };
   },
 });
 
