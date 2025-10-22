@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { rateLimiter } from "./rateLimiter";
+import { aggregateSubmissionsByUser } from "./aggregateUserSubmissions";
 
 export const submit = mutation({
   args: {
@@ -409,33 +410,39 @@ export const getLeaderboard = query({
     const pageSize = Math.min(args.pageSize || 25, 50); // Max 50 per page
     const offset = page * pageSize;
     const includeFlagged = args.includeFlagged || false;
-    
-    // Build the query based on sort preference
-    let query = sortBy === "cost" 
-      ? ctx.db.query("submissions").withIndex("by_total_cost").order("desc")
-      : ctx.db.query("submissions").withIndex("by_total_tokens").order("desc");
-    
-    // Fetch enough for current page + check for more
-    // Need to skip to offset then take pageSize + buffer for filtering
-    const bufferMultiplier = includeFlagged ? 1 : 2;
-    const fetchLimit = Math.min(offset + (pageSize * bufferMultiplier) + 1, 200);
-    let allResults = await query.take(fetchLimit);
-    
+
+    // Fetch ALL submissions to aggregate by username
+    const allSubmissions = await ctx.db
+      .query("submissions")
+      .collect();
+
     // Filter out flagged submissions if needed
-    if (!includeFlagged) {
-      allResults = allResults.filter(sub => !sub.flaggedForReview);
-    }
-    
-    // Apply pagination
-    const items = allResults.slice(offset, offset + pageSize);
-    const hasMore = allResults.length > offset + pageSize;
-    
+    let filteredSubmissions = includeFlagged
+      ? allSubmissions
+      : allSubmissions.filter(sub => !sub.flaggedForReview);
+
+    // Use the helper to aggregate submissions by username
+    const aggregatedResults = aggregateSubmissionsByUser({
+      submissions: filteredSubmissions,
+    });
+
+    // Sort the aggregated results
+    aggregatedResults.sort((a, b) => {
+      return sortBy === "cost"
+        ? b.totalCost - a.totalCost
+        : b.totalTokens - a.totalTokens;
+    });
+
+    // Apply pagination to aggregated results
+    const items = aggregatedResults.slice(offset, offset + pageSize);
+    const hasMore = aggregatedResults.length > offset + pageSize;
+
     return {
       items,
       page,
       pageSize,
       hasMore,
-      totalPages: Math.ceil(Math.min(allResults.length, 200) / pageSize),
+      totalPages: Math.ceil(aggregatedResults.length / pageSize),
     };
   },
 });
@@ -465,59 +472,29 @@ export const getLeaderboardByDateRange = query({
       .query("submissions")
       .collect(); // Fetch everything
 
-    // Process ALL submissions to calculate date-filtered totals
-    const processedItems = [];
+    // Filter out flagged submissions if needed
+    let filteredSubmissions = includeFlagged
+      ? allSubmissions
+      : allSubmissions.filter(sub => !sub.flaggedForReview);
 
-    for (const submission of allSubmissions) {
-      // Skip flagged if not included
-      if (!includeFlagged && submission.flaggedForReview) continue;
+    // Use the helper to aggregate submissions by username with date filtering
+    const aggregatedResults = aggregateSubmissionsByUser({
+      submissions: filteredSubmissions,
+      dateFrom: args.dateFrom,
+      dateTo: args.dateTo,
+    });
 
-      // Filter daily breakdown by date range
-      const filteredDays = submission.dailyBreakdown.filter(day => {
-        return day.date >= args.dateFrom && day.date <= args.dateTo;
-      });
-
-      // Skip if no data in date range
-      if (filteredDays.length === 0) continue;
-
-      // Calculate totals for the filtered date range
-      const filteredTotals = filteredDays.reduce(
-        (acc, day) => ({
-          totalCost: acc.totalCost + day.totalCost,
-          totalTokens: acc.totalTokens + day.totalTokens,
-          inputTokens: acc.inputTokens + day.inputTokens,
-          outputTokens: acc.outputTokens + day.outputTokens,
-          cacheCreationTokens: acc.cacheCreationTokens + day.cacheCreationTokens,
-          cacheReadTokens: acc.cacheReadTokens + day.cacheReadTokens,
-        }),
-        {
-          totalCost: 0,
-          totalTokens: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          cacheCreationTokens: 0,
-          cacheReadTokens: 0,
-        }
-      );
-
-      processedItems.push({
-        ...submission,
-        ...filteredTotals, // Override with filtered totals
-        dailyBreakdown: filteredDays, 
-      });
-    }
-
-    // Sort ALL processed items properly
-    processedItems.sort((a, b) => {
+    // Sort the aggregated results
+    aggregatedResults.sort((a, b) => {
       return sortBy === "cost"
         ? b.totalCost - a.totalCost
         : b.totalTokens - a.totalTokens;
     });
 
     // Apply offset-based pagination (same as getLeaderboard)
-    const items = processedItems.slice(offset, offset + pageSize);
-    const hasMore = processedItems.length > offset + pageSize;
-    const totalItems = processedItems.length;
+    const items = aggregatedResults.slice(offset, offset + pageSize);
+    const hasMore = aggregatedResults.length > offset + pageSize;
+    const totalItems = aggregatedResults.length;
 
     return {
       items,
@@ -872,4 +849,3 @@ export const checkClaimableSubmissions = query({
     };
   },
 });
-
