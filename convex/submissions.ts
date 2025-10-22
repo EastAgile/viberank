@@ -289,8 +289,8 @@ export const submit = mutation({
       try {
         await ctx.db.patch(existingSubmission._id, {
           githubUsername,
-          githubName,
-          githubAvatar,
+          githubName: githubName || existingSubmission.githubName,
+          githubAvatar: githubAvatar || existingSubmission.githubAvatar,
           totalTokens: mergedTotals.totalTokens,
           totalCost: mergedTotals.totalCost,
           inputTokens: mergedTotals.inputTokens,
@@ -373,8 +373,8 @@ export const submit = mutation({
       const updates: any = {
         bestSubmission: submissionId,
         githubUsername,
-        githubName,
-        avatar: githubAvatar,
+        githubName: githubName || existingProfile.githubName,
+        avatar: githubAvatar || existingProfile.avatar,
         totalSubmissions: existingProfile.totalSubmissions + 1, // Always increment
       };
 
@@ -726,13 +726,34 @@ export const claimAndMergeSubmissions = mutation({
   },
 });
 
-// Helper action to fetch GitHub name from API
 export const fetchGitHubName = action({
   args: {
     githubUsername: v.string(),
   },
   handler: async (ctx, args) => {
     const { githubUsername } = args;
+
+    try {
+      await rateLimiter.limit(ctx, "githubApi", {
+        key: "global",
+        throws: true,
+        config: {
+          kind: "token bucket",
+          rate: 30,
+          period: 60000,
+          capacity: 30,
+        }
+      });
+    } catch (error: any) {
+      if (error?.data?.kind === "RateLimitError") {
+        console.warn(`GitHub API rate limit exceeded, using username as fallback for ${githubUsername}`);
+        return {
+          name: githubUsername,
+          avatar: null
+        };
+      }
+      throw error;
+    }
 
     try {
       const response = await fetch(`https://api.github.com/users/${githubUsername}`, {
@@ -742,18 +763,29 @@ export const fetchGitHubName = action({
         }
       });
 
+      const remaining = response.headers.get('X-RateLimit-Remaining');
+      const reset = response.headers.get('X-RateLimit-Reset');
+
+      if (remaining && parseInt(remaining) < 10) {
+        const resetDate = reset ? new Date(parseInt(reset) * 1000) : new Date();
+        console.warn(`GitHub API rate limit low: ${remaining} requests remaining. Resets at ${resetDate.toISOString()}`);
+      }
+
       if (response.ok) {
         const userData = await response.json();
         return {
-          name: userData.name || githubUsername, // Fallback to username if no name
+          name: userData.name || githubUsername,
           avatar: userData.avatar_url || null
         };
+      } else if (response.status === 403) {
+        console.error(`GitHub API rate limited (403) for ${githubUsername}`);
+      } else if (response.status === 404) {
+        console.warn(`GitHub user not found: ${githubUsername}`);
       }
     } catch (error) {
       console.warn(`Error fetching GitHub data for ${githubUsername}:`, error);
     }
 
-    // On error or not found, return username as fallback
     return {
       name: githubUsername,
       avatar: null
