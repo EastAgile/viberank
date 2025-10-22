@@ -787,7 +787,7 @@ export const fetchGitHubName = action({
     }
 
     return {
-      name: githubUsername,
+      name: null,
       avatar: null
     };
   },
