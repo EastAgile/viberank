@@ -11,7 +11,7 @@ export const getGlobalStats = query({
     // 1. Get unique user count from profiles (more accurate for user count)
     const profileCount = await ctx.db
       .query("profiles")
-      .take(5000) // Profiles are smaller, we can fetch more
+      .take(500) // Reduced from 5000 to prevent bandwidth overload
       .then(profiles => profiles.length);
     
     // 2. Get top submissions for cost/token stats (these matter most)
@@ -56,7 +56,7 @@ export const getGlobalStats = query({
     const totalSubmissionCount = await ctx.db
       .query("submissions")
       .withIndex("by_total_cost")
-      .take(1000) // Just count, don't process
+      .take(300) // Just count, don't process
       .then(subs => subs.filter(s => !s.flaggedForReview).length);
     
     // Use the maximum of different counting methods for most accurate user count

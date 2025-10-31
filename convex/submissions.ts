@@ -405,16 +405,24 @@ export const getLeaderboard = query({
     includeFlagged: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    // Early return when "skip" is passed - prevents unnecessary database access
+    if ((args as any) === "skip") {
+      return undefined;
+    }
+
     const sortBy = args.sortBy || "cost";
     const page = args.page || 0;
     const pageSize = Math.min(args.pageSize || 25, 50); // Max 50 per page
     const offset = page * pageSize;
     const includeFlagged = args.includeFlagged || false;
 
-    // Fetch ALL submissions to aggregate by username
+    // Fetch submissions with a reasonable limit to prevent bandwidth overload
+    const indexToUse = sortBy === "cost" ? "by_total_cost" : "by_total_tokens";
     const allSubmissions = await ctx.db
       .query("submissions")
-      .collect();
+      .withIndex(indexToUse)
+      .order("desc")
+      .take(300); 
 
     // Filter out flagged submissions if needed
     let filteredSubmissions = includeFlagged
@@ -461,17 +469,26 @@ export const getLeaderboardByDateRange = query({
     includeFlagged: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    // Early return when "skip" is passed - prevents unnecessary database access
+    if ((args as any) === "skip") {
+      return undefined;
+    }
+
     const sortBy = args.sortBy || "cost";
     const page = args.page || 0;
     const pageSize = Math.min(args.pageSize || 25, 50); // Max 50 per page
     const offset = page * pageSize;
     const includeFlagged = args.includeFlagged || false;
 
-    // Fetch ALL submissions at once (acceptable for small company dataset)
+    // Fetch submissions with a reasonable limit to prevent bandwidth overload
+    // Use the appropriate index based on sortBy for efficient querying
+    const indexToUse = sortBy === "cost" ? "by_total_cost" : "by_total_tokens";
     const allSubmissions = await ctx.db
       .query("submissions")
-      .collect(); // Fetch everything
-
+      .withIndex(indexToUse)
+      .order("desc")
+      .take(300); 
+      
     // Filter out flagged submissions if needed
     let filteredSubmissions = includeFlagged
       ? allSubmissions
